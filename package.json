@@ -1,0 +1,19 @@
+{
+  "name": "aevum-proof-gated-payee",
+  "version": "1.0.0",
+  "description": "**Track:** Confirmation of Payee (DoraHacks) · **Chain:** Aevum testnet (44005) · **Token:** tUSD8 (`0x456569838f1d43009A91ebA4263147Afd7233483`, 6 decimals)",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ethers": "^6.17.0"
+  }
+}
