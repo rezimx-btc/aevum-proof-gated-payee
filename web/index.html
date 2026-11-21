@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proof-Gated Payee — Aevum Builder Challenge #1</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Proof-Gated Payee</h1>
+    <p class="sub">Aevum Builder Challenge #1 &middot; Track: <strong>Confirmation of Payee</strong></p>
+    <div class="chips">
+      <span class="chip">Chain <strong>44005</strong> (Aevum testnet)</span>
+      <span class="chip">Kontrak <a id="contractLink" href="https://explorer-test.qday.info/address/0xCFf720cCb87804a0027941066a5B216CaE0b2467" target="_blank" rel="noopener">0xCFf7&hellip;2467</a></span>
+      <span class="chip">Token tUSD8 <a href="https://explorer-test.qday.info/address/0x456569838f1d43009A91ebA4263147Afd7233483" target="_blank" rel="noopener">0x4565&hellip;3483</a> (6 desimal)</span>
+      <span class="chip" id="rpcStatus">RPC: memeriksa&hellip;</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="card" id="connCard">
+    <h2>Koneksi</h2>
+    <div class="row">
+      <label>RPC URL
+        <input id="rpcUrl" type="text" size="46" value="https://rpc-test.qday.info">
+      </label>
+      <button id="btnRefresh" type="button">Refresh state</button>
+      <button id="btnConnect" type="button">Connect Wallet</button>
+      <span id="walletStatus" class="muted">Wallet belum terhubung — mode baca saja.</span>
+    </div>
+    <p class="hint">Mode baca <strong>tidak butuh wallet</strong>: state dibaca langsung dari RPC publik.
+      RPC publik mengizinkan akses browser (<code>Access-Control-Allow-Origin: *</code>, dicek 21 Nov 2026).
+      Kalau RPC mati / diblokir, isi RPC lain di atas lalu Refresh.
+      Aksi tulis hanya aktif setelah Connect Wallet (MetaMask / wallet EVM apa pun) dan hanya lewat wallet kamu —
+      <strong>tidak ada private key di halaman ini.</strong></p>
+    <p id="errorBox" class="error" hidden></p>
+  </section>
+
+  <section class="card">
+    <h2>State live (on-chain)</h2>
+    <div class="grid" id="stateGrid">
+      <div><span class="k">Owner</span><span class="v" id="stOwner">—</span></div>
+      <div><span class="k">nextInvoiceId</span><span class="v" id="stNextId">—</span></div>
+      <div><span class="k">Escrow (kontrak)</span><span class="v" id="stEscrow">—</span></div>
+      <div><span class="k">EOA (payer)</span><span class="v" id="stEoa">—</span></div>
+      <div><span class="k">Vendor Kopi</span><span class="v" id="stVendor">—</span></div>
+      <div><span class="k">Agen session key</span><span class="v" id="stAgent">—</span></div>
+      <div><span class="k">Remaining spend agen</span><span class="v" id="stRemaining">—</span></div>
+      <div><span class="k">Spend limit agen</span><span class="v" id="stLimit">—</span></div>
+      <div><span class="k">Blok terakhir dibaca</span><span class="v" id="stBlock">—</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Alur 5 langkah — status live</h2>
+    <ol class="steps" id="steps">
+      <li data-step="1"><b>1. Register payee</b><span class="desc">Owner daftarkan payee ke allowlist.</span><span class="badge" data-badge>…</span><span class="detail" data-detail></span></li>
+      <li data-step="2"><b>2. Authorize agent</b><span class="desc">Owner beri session key ke agen verifikasi.</span><span class="badge" data-badge>…</span><span class="detail" data-detail></span></li>
+      <li data-step="3"><b>3. Set spending limit</b><span class="desc">Cap + jendela waktu per agen.</span><span class="badge" data-badge>…</span><span class="detail" data-detail></span></li>
+      <li data-step="4"><b>4. Create invoice / escrow</b><span class="desc">Payer kunci tUSD8 ke escrow (perlu approve token dulu).</span><span class="badge" data-badge>…</span><span class="detail" data-detail></span></li>
+      <li data-step="5"><b>5. Agen verifikasi → release / refund</b><span class="desc">Gate 5 kondisi lolos → release; gagal → refund ke payer.</span><span class="badge" data-badge>…</span><span class="detail" data-detail></span></li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>Daftar invoice</h2>
+    <table id="invTable">
+      <thead><tr><th>#</th><th>Payer</th><th>Payee</th><th>Amount</th><th>Expiry</th><th>Status</th><th></th></tr></thead>
+      <tbody><tr><td colspan="7" class="muted">Memuat…</td></tr></tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Panel verdict gate</h2>
+    <p class="hint">Panggil <code>verifyPayee(id, agent)</code> + <code>canRelease(id, agent)</code> secara live.
+      Urutan 5 gate sesuai <code>src/ProofGatedPayee.sol</code>:
+      (1) payee terdaftar, (2) invoice belum expired, (3) agen authorized,
+      (4) dalam spend limit, (5) invoice aktif (status Created).</p>
+    <div class="row">
+      <label>Invoice id <input id="gateId" type="number" min="0" value="1"></label>
+      <label>Agen <input id="gateAgent" type="text" size="46" value="0x9caCbAaf1d71C5640982Bd4216Ee9FcA11dC91E2"></label>
+      <button id="btnGate" type="button">Cek gate</button>
+    </div>
+    <div id="gateResult" class="gate"></div>
+  </section>
+
+  <section class="card" id="writeCard">
+    <h2>Aksi tulis <span class="muted">(butuh wallet terhubung di chain 44005)</span></h2>
+    <p class="hint">Setiap form menampilkan preview call persis sebelum dikirim. Gas dibayar dari wallet kamu
+      (tQDAY). Buat invoice baru: approve dulu token tUSD8 ke kontrak (form Approve), baru Create Invoice.
+      Semua tx: hash + link explorer ditampilkan di bawah form.</p>
+
+    <div class="forms">
+      <form data-action="registerPayee">
+        <h3>Register payee <span class="tag">owner</span></h3>
+        <label>Nama <input name="name" value="Vendor Kopi"></label>
+        <label>Alamat payee <input name="payee" value="0x3Eb09d7A08ACD5dEbC1F0b5ee83a1a344890632F"></label>
+        <button type="submit">Kirim registerPayee</button>
+      </form>
+
+      <form data-action="revokePayee">
+        <h3>Revoke payee <span class="tag">owner</span></h3>
+        <label>Alamat payee <input name="payee" placeholder="0x…"></label>
+        <button type="submit">Kirim revokePayee</button>
+      </form>
+
+      <form data-action="authorizeAgent">
+        <h3>Authorize agent <span class="tag">owner</span></h3>
+        <label>Alamat agen <input name="agent" value="0x9caCbAaf1d71C5640982Bd4216Ee9FcA11dC91E2"></label>
+        <label>Authorized
+          <select name="authorized"><option value="true">true</option><option value="false">false</option></select>
+        </label>
+        <button type="submit">Kirim authorizeAgent</button>
+      </form>
+
+      <form data-action="setSpendingLimit">
+        <h3>Set spending limit <span class="tag">owner</span></h3>
+        <label>Alamat agen <input name="agent" value="0x9caCbAaf1d71C5640982Bd4216Ee9FcA11dC91E2"></label>
+        <label>Cap (tUSD8) <input name="cap" type="number" step="0.000001" min="0" value="2"></label>
+        <label>Jendela (detik) <input name="windowSeconds" type="number" min="0" value="86400"></label>
+        <button type="submit">Kirim setSpendingLimit</button>
+      </form>
+
+      <form data-action="approve">
+        <h3>Approve tUSD8 <span class="tag">payer</span></h3>
+        <label>Jumlah (tUSD8) <input name="amount" type="number" step="0.000001" min="0" value="1"></label>
+        <p class="hint">Approve kontrak escrow menarik tUSD8 — wajib sebelum createInvoice.</p>
+        <button type="submit">Kirim approve</button>
+      </form>
+
+      <form data-action="createInvoice">
+        <h3>Create invoice <span class="tag">payer</span></h3>
+        <label>Alamat payee <input name="payee" value="0x3Eb09d7A08ACD5dEbC1F0b5ee83a1a344890632F"></label>
+        <label>Jumlah (tUSD8) <input name="amount" type="number" step="0.000001" min="0" value="1"></label>
+        <label>Purpose (teks → bytes32) <input name="purpose" value="kopi-002"></label>
+        <label>Expiry (menit dari sekarang) <input name="expiryMinutes" type="number" min="1" value="1440"></label>
+        <button type="submit">Kirim createInvoice</button>
+      </form>
+
+      <form data-action="release">
+        <h3>Release <span class="tag">agen authorized</span></h3>
+        <label>Invoice id <input name="id" type="number" min="0" value="0"></label>
+        <p class="hint">Hanya agen authorized; semua 5 gate harus lolos (cek panel verdict dulu).</p>
+        <button type="submit">Kirim release</button>
+      </form>
+
+      <form data-action="refund">
+        <h3>Refund <span class="tag">payer</span></h3>
+        <label>Invoice id <input name="id" type="number" min="0" value="1"></label>
+        <p class="hint">Hanya payer; invoice harus cancelled / expired / payee dicabut.</p>
+        <button type="submit">Kirim refund</button>
+      </form>
+
+      <form data-action="cancelInvoice">
+        <h3>Cancel invoice <span class="tag">payer</span></h3>
+        <label>Invoice id <input name="id" type="number" min="0" value="0"></label>
+        <p class="hint">Hanya payer; invoice harus masih Created. Dana tetap di escrow sampai refund.</p>
+        <button type="submit">Kirim cancelInvoice</button>
+      </form>
+    </div>
+
+    <div id="txLog"></div>
+  </section>
+
+  <footer class="muted">
+    Proof-Gated Payee — demo entry Aevum Builder Challenge #1. Kontrak
+    <a href="https://explorer-test.qday.info/address/0xCFf720cCb87804a0027941066a5B216CaE0b2467" target="_blank" rel="noopener">0xCFf720cCb87804a0027941066a5B216CaE0b2467</a>
+    di Aevum testnet (chain 44005). Halaman statis, tanpa build step, tanpa private key.
+  </footer>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
