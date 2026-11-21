@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proof-Gated Payee — Aevum Builder Challenge #1</title>
+<style>
+  :root{
+    --bg:#0b0f14; --bg2:#111827; --card:#151d29; --line:#243144;
+    --text:#e8eef6; --muted:#93a4b8; --accent:#38bdf8; --green:#34d399;
+    --red:#f87171; --amber:#fbbf24; --violet:#a78bfa;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:#05070a; color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;}
+  .deck{max-width:1180px; margin:0 auto; padding:24px 20px 60px;}
+  .slide{
+    background:linear-gradient(160deg,var(--bg) 0%,var(--bg2) 100%);
+    border:1px solid var(--line); border-radius:18px;
+    min-height:640px; padding:52px 56px 44px; margin:0 0 28px;
+    display:none; flex-direction:column; justify-content:center;
+    position:relative; overflow:hidden;
+  }
+  .slide.active{display:flex;}
+  .slide::before{content:""; position:absolute; inset:0 0 auto 0; height:4px;
+    background:linear-gradient(90deg,var(--accent),var(--violet),var(--green)); opacity:.9;}
+  .kicker{font-size:13px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--accent); font-weight:700; margin-bottom:14px;}
+  h1{font-size:56px; line-height:1.05; letter-spacing:-.02em;}
+  h1 .hl{color:var(--accent);}
+  h2{font-size:38px; line-height:1.12; letter-spacing:-.015em; margin-bottom:18px;}
+  h2 .hl{color:var(--accent);}
+  .sub{font-size:20px; color:var(--muted); line-height:1.5; max-width:820px;}
+  .lead{font-size:21px; line-height:1.55; color:var(--text); max-width:900px;}
+  .meta{margin-top:28px; display:flex; flex-wrap:wrap; gap:10px;}
+  .chip{background:var(--card); border:1px solid var(--line); border-radius:999px;
+    padding:8px 16px; font-size:14px; color:var(--text);}
+  .chip b{color:var(--accent);}
+  .grid{display:grid; gap:16px;}
+  .g3{grid-template-columns:repeat(3,1fr);}
+  .g2{grid-template-columns:repeat(2,1fr);}
+  .g4{grid-template-columns:repeat(4,1fr);}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 22px;}
+  .card h3{font-size:17px; margin-bottom:8px;}
+  .card p{font-size:15px; line-height:1.55; color:var(--muted);}
+  .card p b{color:var(--text);}
+  .bignum{font-size:44px; font-weight:800; letter-spacing:-.02em; line-height:1;}
+  .bignum small{font-size:18px; font-weight:600; color:var(--muted);}
+  .unit{font-size:14px; color:var(--muted); margin-top:8px; line-height:1.45;}
+  .green{color:var(--green);} .red{color:var(--red);} .amber{color:var(--amber);}
+  .accent{color:var(--accent);} .violet{color:var(--violet);}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px;
+    word-break:break-all; color:var(--muted);}
+  .mono b{color:var(--text); font-weight:600;}
+  table{width:100%; border-collapse:collapse; font-size:15px;}
+  th,td{text-align:left; padding:11px 12px; border-bottom:1px solid var(--line); vertical-align:top;}
+  th{color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:.08em;}
+  td{line-height:1.5;}
+  .pill{display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700;}
+  .pill.ok{background:rgba(52,211,153,.15); color:var(--green);}
+  .pill.no{background:rgba(248,113,113,.15); color:var(--red);}
+  .gate{display:flex; align-items:center; gap:10px; font-size:16px; padding:7px 0;}
+  .gate .dot{width:22px; height:22px; border-radius:50%; display:inline-flex;
+    align-items:center; justify-content:center; font-size:13px; font-weight:800; flex:none;}
+  .dot.ok{background:rgba(52,211,153,.18); color:var(--green);}
+  .dot.no{background:rgba(248,113,113,.18); color:var(--red);}
+  /* architecture diagram */
+  .arch{display:flex; flex-direction:column; align-items:center; gap:0; margin-top:8px;}
+  .node{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:14px 20px; text-align:center; min-width:340px;}
+  .node h3{font-size:16px; margin-bottom:4px;}
+  .node p{font-size:13.5px; color:var(--muted); line-height:1.5;}
+  .node.contract{border-color:var(--accent); min-width:520px; max-width:640px;}
+  .arrow{font-size:20px; color:var(--accent); line-height:1; padding:4px 0;}
+  .arrow small{display:block; font-size:12px; color:var(--muted); letter-spacing:.04em;}
+  .row2{display:flex; gap:16px; justify-content:center;}
+  .row2 .node{min-width:300px;}
+  .criteria{display:grid; grid-template-columns:1fr 1fr; gap:10px 22px; font-size:15px; line-height:1.5;}
+  .criteria div b{color:var(--accent);}
+  .criteria div span{color:var(--muted);}
+  .foot{margin-top:26px; font-size:13px; color:var(--muted);}
+  .foot a{color:var(--accent); text-decoration:none;}
+  .nav{position:fixed; right:22px; bottom:18px; display:flex; gap:8px; z-index:10;}
+  .nav button{background:var(--card); color:var(--text); border:1px solid var(--line);
+    border-radius:10px; padding:10px 16px; font-size:15px; cursor:pointer;}
+  .nav button:hover{border-color:var(--accent);}
+  .counter{position:fixed; left:22px; bottom:24px; font-size:13px; color:var(--muted); z-index:10;}
+  .hint{font-size:13px; color:var(--muted); margin-top:18px;}
+  @media (max-width:820px){
+    .slide{padding:34px 24px; min-height:0;}
+    h1{font-size:38px;} h2{font-size:28px;}
+    .g3,.g2,.g4,.criteria{grid-template-columns:1fr;}
+    .node,.node.contract{min-width:0; width:100%;}
+    .row2{flex-direction:column; align-items:stretch;}
+  }
+  @media print{
+    @page{size:1280px 720px; margin:0;}
+    html,body{background:#fff;}
+    .deck{max-width:none; padding:0; margin:0;}
+    .slide{display:flex !important; min-height:700px; height:700px;
+      margin:0; border:none; border-radius:0; page-break-after:always; break-after:page;}
+    .slide:last-child{page-break-after:auto;}
+    .nav,.counter,.hint{display:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1 · Judul -->
+  <section class="slide active" data-title="Judul">
+    <div class="kicker">Aevum Builder Challenge #1 &middot; Track: Confirmation of Payee</div>
+    <h1>Proof-Gated<br><span class="hl">Payee</span></h1>
+    <p class="sub" style="margin-top:18px;">Agen otonom memverifikasi penerima <b style="color:var(--text)">sebelum</b> stablecoin bergerak.
+    Dana terkunci di escrow — tUSD8 hanya lepas bila semua bukti lolos.</p>
+    <div class="meta">
+      <span class="chip">Chain: <b>Aevum testnet (44005)</b></span>
+      <span class="chip">Token: <b>tUSD8</b></span>
+      <span class="chip">Builder: <b>rezimx-btc</b> &middot; solo</span>
+      <span class="chip">Status: <b>Live di testnet</b></span>
+    </div>
+    <p class="foot">Demo live 21 Nov 2026 &middot; Submit sebelum <b style="color:var(--text)">11 Des 2026, 15:00 WIB</b> &middot; Hadiah $1.500 USDT</p>
+  </section>
+
+  <!-- 2 · Masalah -->
+  <section class="slide" data-title="Masalah">
+    <div class="kicker">01 &middot; Masalah</div>
+    <h2>Pembayaran stablecoin hari ini <span class="hl">buta terhadap siapa penerimanya.</span></h2>
+    <div class="grid g3" style="margin-top:10px;">
+      <div class="card">
+        <h3>&#10060; Alamat salah, dana hilang</h3>
+        <p>Sekali alamat tujuan <b>salah ketik, salah pihak, atau dompet penipu</b> — dana hilang tanpa jalan kembali. Tidak ada tombol undo di blockchain.</p>
+      </div>
+      <div class="card">
+        <h3>&#129302; Agen otonom memperparah</h3>
+        <p>Agentic commerce: agen AI membayar sendiri. <b>Prompt injection atau alamat palsu</b> bisa menipu agen untuk membayar penerima yang salah — tanpa manusia memeriksa.</p>
+      </div>
+      <div class="card">
+        <h3>&#128269; Cek manual tidak cukup</h3>
+        <p>Konfirmasi payee hari ini cuma <b>cek mata di UI</b>. Yang dibutuhkan: konfirmasi yang bisa <b>diverifikasi mesin</b>, ditegakkan on-chain, sebelum dana bergerak.</p>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:24px;">Pertanyaannya bukan <i>“berapa yang dibayar?”</i> — tapi <i>“apakah penerima ini benar-benar yang berhak?”</i> — dijawab <b class="accent">sebelum</b> transfer terjadi.</p>
+  </section>
+
+  <!-- 3 · Solusi -->
+  <section class="slide" data-title="Solusi">
+    <div class="kicker">02 &middot; Solusi</div>
+    <h2>Escrow <span class="hl">proof-gated</span>: verifikasi dulu, bayar kemudian.</h2>
+    <div class="grid g2" style="margin-top:8px;">
+      <div class="card">
+        <h3>1 &middot; Invoice on-chain</h3>
+        <p>Pembayar membuat invoice (payee, jumlah, purpose hash, expiry) dan <b>mengunci tUSD8 ke escrow</b>. Dana tidak lagi di tangan pembayar — tapi juga belum di tangan siapa pun.</p>
+      </div>
+      <div class="card">
+        <h3>2 &middot; Agen memverifikasi — 5 gate</h3>
+        <p>Agen memeriksa: payee <b>terdaftar di allowlist</b>, invoice <b>aktif &amp; belum kedaluwarsa</b>, agen <b>terotorisasi</b>, jumlah <b>dalam spending limit</b>. Semua bisa dibaca siapa pun via <span class="mono">verifyPayee() / canRelease()</span>.</p>
+      </div>
+      <div class="card">
+        <h3>3 &middot; Release hanya bila semua lolos</h3>
+        <p>Session key agen hanya bisa memanggil <span class="mono">release()</span>. <b>Agen tidak bisa menarik escrow ke alamat lain</b> — dana hanya bisa ke payee invoice itu, atau kembali ke pembayar (refund).</p>
+      </div>
+      <div class="card">
+        <h3>4 &middot; Gagal = dana aman</h3>
+        <p>Payee tak terdaftar / jumlah tak cocok / limit terlampaui &rarr; <span class="mono">release()</span> <b>revert</b>. Dana tetap di escrow sampai pembayar refund. Setiap langkah tercatat sebagai <b>event on-chain = audit trail</b>.</p>
+      </div>
+    </div>
+    <p class="foot">Safety: least-privilege session key &middot; spend cap per agen per window &middot; expiry per invoice &middot; owner tidak punya backdoor atas dana escrow &middot; Checks-Effects-Interactions, custom errors.</p>
+  </section>
+
+  <!-- 4 · Arsitektur -->
+  <section class="slide" data-title="Arsitektur">
+    <div class="kicker">03 &middot; Arsitektur</div>
+    <h2>Satu kontrak, satu agen, <span class="hl">satu alur yang bisa diaudit.</span></h2>
+    <div class="arch">
+      <div class="row2">
+        <div class="node">
+          <h3>&#128100; Pembayar (EOA)</h3>
+          <p>approve &middot; createInvoice &middot; refund &middot; cancelInvoice</p>
+        </div>
+        <div class="node">
+          <h3>&#129302; Agen Verifier (off-chain)</h3>
+          <p>Node + ethers v6 &middot; cek allowlist, amount, expiry, spend cap &middot; session key release-only</p>
+        </div>
+      </div>
+      <div class="arrow">&#8595;<small>payer locks tUSD8 &nbsp;·&nbsp; agent calls release() bila lolos</small></div>
+      <div class="node contract">
+        <h3>&#128176; ProofGatedPayee.sol — Aevum testnet (44005)</h3>
+        <p>Escrow tUSD8 (ERC-20, 6 desimal) &middot; invoice registry &middot; payee allowlist / registry identitas &middot; session keys &middot; spending limit per window &middot; events: InvoiceCreated, PayeeVerified, Released, Refunded &hellip;</p>
+      </div>
+      <div class="arrow">&#8595;<small>CLI demo + web UI membaca status &amp; audit trail dari explorer</small></div>
+      <div class="node">
+        <h3>&#128187; CLI Demo &middot; Web UI</h3>
+        <p>Buat invoice, lihat status verifikasi, jalankan demo end-to-end 1 perintah</p>
+      </div>
+    </div>
+    <p class="foot">Kontrak ditulis segar dari DESIGN.md (tanpa menyalin starter kit) &middot; Foundry, Solidity 0.8.24, EVM Shanghai &middot; bytecode 6.411 byte.</p>
+  </section>
+
+  <!-- 5 · Hasil demo live -->
+  <section class="slide" data-title="Hasil Demo Live">
+    <div class="kicker">04 &middot; Hasil demo live — 21 Nov 2026, 18:49&ndash;18:52 WIB</div>
+    <h2>Kedua jalur terbukti <span class="hl">on-chain.</span></h2>
+    <div class="grid g4" style="margin-top:6px;">
+      <div class="card"><div class="bignum green">11<small> / 11</small></div><div class="unit">transaksi demo, semua receipt status <b>0x1</b> (sukses) — diverifikasi ulang independen</div></div>
+      <div class="card"><div class="bignum green">5<small> / 5</small></div><div class="unit">gate verifikasi PASS pada invoice #0 sebelum release</div></div>
+      <div class="card"><div class="bignum accent">1 <small>tUSD8</small></div><div class="unit">diterima “Vendor Kopi” dari invoice #0 — tepat, tanpa selisih</div></div>
+      <div class="card"><div class="bignum red">0 <small>tUSD8</small></div><div class="unit">diterima alamat tak terdaftar dari invoice #1 — DENIED lalu refund penuh 0,5 tUSD8</div></div>
+    </div>
+    <div class="grid g4" style="margin-top:16px;">
+      <div class="card"><div class="bignum">23<small> / 23</small></div><div class="unit">Foundry test lolos (lokal)</div></div>
+      <div class="card"><div class="bignum">~0,003 <small>tQDAY</small></div><div class="unit">total gas seluruh demo (gas testnet ~1,2 gwei)</div></div>
+      <div class="card"><div class="bignum">4 + 1 <small>= 5</small></div><div class="unit">tUSD8 terakuntansi penuh: EOA 4 &middot; vendor 1 &middot; escrow 0 &middot; stranger 0</div></div>
+      <div class="card"><div class="bignum">2 <small>tUSD8 / hari</small></div><div class="unit">spending limit agen — terpakai 1, tersisa 1 setelah demo</div></div>
+    </div>
+  </section>
+
+  <!-- 6 · Detail demo -->
+  <section class="slide" data-title="Detail Demo">
+    <div class="kicker">05 &middot; Detail demo — semua tx bisa dicek di explorer</div>
+    <h2>Dua invoice, <span class="hl">dua hasil yang berlawanan.</span></h2>
+    <table>
+      <tr><th style="width:16%;">Invoice</th><th style="width:42%;">Jalur</th><th>Hasil</th></tr>
+      <tr>
+        <td><b>#0 — 1 tUSD8</b><br><span class="mono">“Vendor Kopi”<br>0x3Eb0&hellip;632F</span></td>
+        <td><span class="pill ok">APPROVED</span> &nbsp;5 gate PASS: payeeRegistered &middot; notExpired &middot; agentAuthorized &middot; withinSpendLimit (1.000.000 / 2.000.000) &middot; active<br>
+        <span class="mono">release() blok 3745041 &middot; event PayeeVerified + Released</span></td>
+        <td><b class="green">Vendor terima 1 tUSD8</b><br>status: Released</td>
+      </tr>
+      <tr>
+        <td><b>#1 — 0,5 tUSD8</b><br><span class="mono">0x1111&hellip;1111<br>(tak terdaftar)</span></td>
+        <td><span class="pill no">DENIED</span> &nbsp;payeeRegistered <b>FAIL</b> — agen menolak release (exit code 2, tanpa tx). Static call membuktikan <span class="mono">release()</span> revert: <span class="mono">PayeeNotRegistered()</span><br>
+        <span class="mono">refund() blok 3745135 &middot; event Refunded</span></td>
+        <td><b class="green">Stranger terima 0</b><br>pembayar refund penuh 0,5 tUSD8 &middot; status: Refunded</td>
+      </tr>
+    </table>
+    <p class="foot">Kontrak: <a href="https://explorer-test.qday.info/address/0xCFf720cCb87804a0027941066a5B216CaE0b2467">0xCFf720cCb87804a0027941066a5B216CaE0b2467</a> &middot;
+    Deploy tx: <a href="https://explorer-test.qday.info/tx/0xac69d16933eb3744dfea907dff9e3aa2c8d25a67f68f655d6a5208e96427c2a1">0xac69&hellip;27c2a1</a> (blok 3744539) &middot;
+    tUSD8: <span class="mono">0x456569838f1d43009A91ebA4263147Afd7233483</span> (6 desimal) &middot; Log lengkap: DEMO.md</p>
+  </section>
+
+  <!-- 7 · Kriteria juri -->
+  <section class="slide" data-title="Kriteria Juri">
+    <div class="kicker">06 &middot; Kesesuaian track &amp; 8 kriteria juri DoraHacks</div>
+    <h2>Track Confirmation of Payee — <span class="hl">tepat sasaran.</span></h2>
+    <div class="criteria" style="margin-top:6px;">
+      <div><b>1. UX &amp; presentasi</b> — <span>alur demo 1 perintah (<span class="mono">node demo/run_demo.mjs</span>) + UI web minimal yang jelas.</span></div>
+      <div><b>2. Demo jelas &amp; terstruktur</b> — <span>11 tx dengan hash + link explorer tiap langkah; kasus sukses dan kasus gagal sama-sama ditunjukkan.</span></div>
+      <div><b>3. Dokumentasi lengkap</b> — <span>README, DESIGN.md, DEMO.md dengan log lengkap + <span class="mono">demo-results.json</span> yang bisa dibaca mesin.</span></div>
+      <div><b>4. Inovasi &amp; orisinalitas</b> — <span>proof-gated release: escrow yang hanya lepas bila bukti verifikasi lolos; lanjutan konsep Proof Gatekeeper (Agent Games zkVerify).</span></div>
+      <div><b>5. Kualitas teknis &amp; integrasi platform</b> — <span>kontrak live di testnet Aevum (44005), tUSD8, session key + spending limit, 23/23 test Foundry.</span></div>
+      <div><b>6. Utilitas nyata &amp; potensi pasar</b> — <span>agentic commerce butuh payee check; mencegah salah kirim dan penipuan pada pembayaran otonom.</span></div>
+      <div><b>7. Safety / trust / controls</b> — <span>least-privilege session key, spend cap, expiry, audit trail on-chain, tanpa backdoor owner atas dana escrow.</span></div>
+      <div><b>8. Kontribusi open-source</b> — <span>repo MIT; escrow + registry generik yang bisa dipakai ulang ekosistem Aevum.</span></div>
+    </div>
+  </section>
+
+  <!-- 8 · Yang dibangun + langkah berikut -->
+  <section class="slide" data-title="Yang Dibangun">
+    <div class="kicker">07 &middot; Yang dibangun dalam window build</div>
+    <h2>Dari desain ke <span class="hl">testnet live</span> dalam satu hari.</h2>
+    <div class="grid g2" style="margin-top:6px;">
+      <div class="card">
+        <h3 class="green">&#10003; Selesai</h3>
+        <p>&bull; Kontrak <span class="mono">ProofGatedPayee.sol</span> + test suite Foundry — <b>23/23 lolos</b><br>
+        &bull; Deploy Aevum testnet — <span class="mono">0xCFf7&hellip;2467</span>, blok 3744539<br>
+        &bull; Agen verifier off-chain (Node + ethers v6) + session key release-only<br>
+        &bull; CLI demo end-to-end + verifikasi independen — <b>11/11 tx sukses</b><br>
+        &bull; README, DESIGN.md, DEMO.md &middot; pitch deck ini</p>
+      </div>
+      <div class="card">
+        <h3 class="amber">&#8594; Langkah berikut</h3>
+        <p>&bull; Web UI minimal (buat invoice, lihat status verifikasi)<br>
+        &bull; Video demo (maks 3 menit)<br>
+        &bull; Lengkapi profil DoraHacks rezimx-btc<br>
+        &bull; Submit Build sebelum <b>11 Des 2026, 15:00 WIB</b><br>
+        &bull; Judging 12&ndash;14 Des &middot; Demo Day 15 Des 13:00 WIB (Top 5)</p>
+      </div>
+    </div>
+    <p class="foot">Repo: <a href="https://github.com/rezimx-btc/aevum-proof-gated-payee">github.com/rezimx-btc/aevum-proof-gated-payee</a> (publik saat submit) &middot;
+    Kontrak: <a href="https://explorer-test.qday.info/address/0xCFf720cCb87804a0027941066a5B216CaE0b2467">explorer-test.qday.info</a> &middot;
+    Log demo: DEMO.md &middot; <span class="mono">demo/demo-results.json</span></p>
+  </section>
+
+  <!-- 9 · Penutup -->
+  <section class="slide" data-title="Penutup">
+    <div class="kicker">Aevum Builder Challenge #1 &middot; Confirmation of Payee</div>
+    <h1 style="font-size:48px;">Dana hanya bergerak<br>bila <span class="hl">penerimanya terbukti.</span></h1>
+    <p class="sub" style="margin-top:20px;">Proof-Gated Payee — escrow proof-gated untuk pembayaran stablecoin otonom.
+    Sudah live di Aevum testnet, sudah dibuktikan dua arah: yang berhak dibayar, yang tidak ditolak.</p>
+    <div class="meta">
+      <span class="chip">Builder: <b>rezimx-btc</b> &middot; solo</span>
+      <span class="chip">Hadiah: <b>$1.500 USDT</b> (1st $800 / 2nd $500 / 3rd $200)</span>
+      <span class="chip">Deadline: <b>11 Des 2026, 15:00 WIB</b></span>
+    </div>
+    <p class="foot">Kontrak: <a href="https://explorer-test.qday.info/address/0xCFf720cCb87804a0027941066a5B216CaE0b2467">0xCFf720cCb87804a0027941066a5B216CaE0b2467</a> &middot; Terima kasih — sampai jumpa di Demo Day.</p>
+  </section>
+
+</div>
+
+<div class="counter" id="counter">1 / 9</div>
+<div class="nav">
+  <button id="prev" type="button">&#8592; Sebelumnya</button>
+  <button id="next" type="button">Berikutnya &#8594;</button>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var idx = 0;
+  var counter = document.getElementById('counter');
+  function show(i){
+    idx = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach(function(s, j){ s.classList.toggle('active', j === idx); });
+    counter.textContent = (idx + 1) + ' / ' + slides.length;
+    window.scrollTo(0, 0);
+  }
+  document.getElementById('prev').addEventListener('click', function(){ show(idx - 1); });
+  document.getElementById('next').addEventListener('click', function(){ show(idx + 1); });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') show(idx + 1);
+    if(e.key === 'ArrowLeft' || e.key === 'PageUp') show(idx - 1);
+    if(e.key === 'Home') show(0);
+    if(e.key === 'End') show(slides.length - 1);
+  });
+  document.addEventListener('click', function(e){
+    if(e.target.closest('.nav') || e.target.closest('a')) return;
+    show(idx + 1);
+  });
+  // ?slide=N deep-link (berguna untuk screenshot per slide)
+  var m = /[?&]slide=(\d+)/.exec(location.search);
+  if(m) show(parseInt(m[1], 10));
+  else show(0);
+})();
+</script>
+</body>
+</html>
