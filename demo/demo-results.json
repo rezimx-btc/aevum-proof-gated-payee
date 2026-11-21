@@ -1,0 +1,113 @@
+{
+  "contract": "0xCFf720cCb87804a0027941066a5B216CaE0b2467",
+  "chainId": 44005,
+  "steps": [
+    {
+      "name": "fund-agent-gas",
+      "tx": "0x248acae56b4aa8ef67bea7b342ff7d3a1a5eb6cde892b919257bfb3d907ddc2a",
+      "block": 3744958,
+      "amountTqday": "0.001"
+    },
+    {
+      "name": "fund-agent-gas",
+      "tx": "0x6a610c6e53bc24bd5240f7a2b7a99989ba2aa469dd72fd45105d0227cf4f13c3",
+      "block": 3744996,
+      "amountTqday": "0.001"
+    },
+    {
+      "name": "register-payee",
+      "tx": "0x1eb14d8ba07c1e0213c62bed60781fe345b662e5059ff39a4e5e0293f6991c41",
+      "block": 3745000,
+      "payee": "0x3Eb09d7A08ACD5dEbC1F0b5ee83a1a344890632F",
+      "recovered": true
+    },
+    {
+      "name": "authorize-agent",
+      "agent": "0x9caCbAaf1d71C5640982Bd4216Ee9FcA11dC91E2",
+      "recovered": true,
+      "tx": "0x0b77f210120a26d71853dc802f205c2043811c2e40a93d54b1116d777dc71cc2",
+      "block": 3745007
+    },
+    {
+      "name": "set-spending-limit",
+      "cap": "2000000",
+      "windowSeconds": 86400,
+      "recovered": true,
+      "tx": "0x6fc006dc0c05a9939813cbbb2d6e273355d92dca198a075c9af2e7b3a7869174",
+      "block": 3745014
+    },
+    {
+      "name": "approve",
+      "tx": "0x84e61d513018b53c42556bcdf7d554e456930e98833a257cc911e4586caa5447",
+      "block": 3745022,
+      "amount": "1000000"
+    },
+    {
+      "name": "create-invoice-success",
+      "tx": "0x57e1141d0856c2f5d53e84f5580ef1b0b0f9a0931f1bcb38b540c1f4e1c8b97d",
+      "block": 3745029,
+      "invoiceId": 0,
+      "amount": "1000000",
+      "purpose": "kopi-001",
+      "recovered": true
+    },
+    {
+      "name": "release-success",
+      "invoiceId": 0,
+      "vendorReceived": "1000000",
+      "tx": "0x70617e01cd45ec9f2e33835ca10524c68758854684f8a7b6e8545a4db9808892",
+      "block": 3745041,
+      "recovered": true
+    },
+    {
+      "name": "approve",
+      "tx": "0xcedea17e28f610311c6df6236fd4fe054ae4d773269c090e6ff4e77b9e33aa4a",
+      "block": 3745118,
+      "amount": "500000"
+    },
+    {
+      "name": "create-invoice-failure-case",
+      "tx": "0x21d0a070f1e6f4c2ce0dac387e4de382fce3b16a5bb64ddbd6910213f99937b5",
+      "block": 3745125,
+      "invoiceId": 1,
+      "amount": "500000",
+      "purpose": "unknown-001"
+    },
+    {
+      "name": "verifier-denied",
+      "invoiceId": 1,
+      "exitCode": 2
+    },
+    {
+      "name": "release-revert-proof",
+      "invoiceId": 1,
+      "revert": "PayeeNotRegistered()"
+    },
+    {
+      "name": "refund",
+      "tx": "0xfa78093b1e469549e433943ce72ffdeeaa85bb75058bc5d5920c513a82fae2dc",
+      "block": 3745135,
+      "invoiceId": 1,
+      "amount": "500000"
+    }
+  ],
+  "eoa": "0x92eeE1BedeCfD2527c315aB31B08838D1dC215a8",
+  "agent": "0x9caCbAaf1d71C5640982Bd4216Ee9FcA11dC91E2",
+  "vendor": "0x3Eb09d7A08ACD5dEbC1F0b5ee83a1a344890632F",
+  "stranger": "0x1111111111111111111111111111111111111111",
+  "balancesBefore": {
+    "eoaTqday": "997388301188479040",
+    "eoaTusd8": "4000000",
+    "vendorTusd8": "1000000",
+    "strangerTusd8": "0",
+    "escrowTusd8": "0"
+  },
+  "balancesAfter": {
+    "eoaTqday": "997025490788479040",
+    "eoaTusd8": "4000000",
+    "vendorTusd8": "1000000",
+    "strangerTusd8": "0",
+    "escrowTusd8": "0"
+  },
+  "outcome": "SUCCESS: release path paid 1 tUSD8 to Vendor Kopi; failure path denied, reverted, refunded in full; stranger received 0"
+}
